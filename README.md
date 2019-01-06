@@ -16,3 +16,4 @@ Features availables:
 Features planned:
 - Access smart contract details
 - Trigger execution
+- Standard Library (strings manipulation, hash generation, etc.)
