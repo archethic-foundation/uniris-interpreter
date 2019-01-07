@@ -1,4 +1,4 @@
-package main
+package uniris
 
 import (
 	"fmt"
@@ -7,15 +7,6 @@ import (
 type environment struct {
 	enclosing *environment
 	values    map[string]interface{}
-}
-
-func newGlobalEnvironment() *environment {
-	globals := &environment{}
-	globals.set("now", currentTimestampFunc{})
-
-	return &environment{
-		enclosing: globals,
-	}
 }
 
 func (env *environment) set(name string, value interface{}) {
@@ -33,15 +24,15 @@ func (env *environment) set(name string, value interface{}) {
 	}
 }
 
-func (env *environment) get(name string) interface{} {
+func (env *environment) get(name string) (interface{}, error) {
 	v, exist := env.values[name]
 	if exist {
-		return v
+		return v, nil
 	}
 
 	if env.enclosing != nil {
 		return env.enclosing.get(name)
 	}
 
-	panic(fmt.Sprintf("Undefined variable %s", name))
+	return nil, fmt.Errorf("Undefined variable %s", name)
 }

@@ -14,6 +14,8 @@ Features availables:
 - Print/Debug
 
 Features planned:
-- Access smart contract details
-- Trigger execution
-- Standard Library (strings manipulation, hash generation, etc.)
+- Access smart contract details (contract, messages, etc.)
+- Hash generation
+- Send IRIS
+- Encrypt
+- Signature verification

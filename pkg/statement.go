@@ -1,11 +1,9 @@
-package main
+package uniris
 
-import (
-	"log"
-)
+import "fmt"
 
 type statement interface {
-	evaluate(env *environment) interface{}
+	evaluate(env *environment) (interface{}, error)
 	print() string
 }
 
@@ -13,7 +11,7 @@ type expressionStmt struct {
 	exp expression
 }
 
-func (stmt expressionStmt) evaluate(env *environment) interface{} {
+func (stmt expressionStmt) evaluate(env *environment) (interface{}, error) {
 	return stmt.exp.evaluate(env)
 }
 
@@ -25,10 +23,13 @@ type printStmt struct {
 	exp expression
 }
 
-func (stmt printStmt) evaluate(env *environment) interface{} {
-	value := stmt.exp.evaluate(env)
-	log.Printf("%v", value)
-	return nil
+func (stmt printStmt) evaluate(env *environment) (interface{}, error) {
+	value, err := stmt.exp.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%v\n", value)
+	return nil, nil
 }
 
 func (stmt printStmt) print() string {
@@ -39,21 +40,25 @@ type blockStmt struct {
 	statements []statement
 }
 
-func (stmt blockStmt) evaluate(env *environment) interface{} {
+func (stmt blockStmt) evaluate(env *environment) (interface{}, error) {
 	newenvironment := &environment{enclosing: env}
 
 	for _, st := range stmt.statements {
 		switch st.(type) {
 		case returnStatement:
-			if val := st.evaluate(newenvironment); val != nil {
-				return val
+			val, err := st.evaluate(newenvironment)
+			if err != nil {
+				return nil, err
 			}
+			return val, nil
 		default:
-			st.evaluate(newenvironment)
+			if _, err := st.evaluate(newenvironment); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (stmt blockStmt) print() string {
@@ -66,17 +71,22 @@ type ifStatement struct {
 	elseStmt statement
 }
 
-func (stmt ifStatement) evaluate(env *environment) interface{} {
-	cond := stmt.cond.evaluate(env)
+func (stmt ifStatement) evaluate(env *environment) (interface{}, error) {
+	cond, err := stmt.cond.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	if isTruthy(cond) {
-		stmt.thenStmt.evaluate(env)
+		if _, err := stmt.thenStmt.evaluate(env); err != nil {
+			return nil, err
+		}
 	} else {
 		if stmt.elseStmt != nil {
 			elseStmt := stmt.elseStmt
 			elseStmt.evaluate(env)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (stmt ifStatement) print() string {
@@ -88,11 +98,18 @@ type whileStatement struct {
 	body statement
 }
 
-func (stmt whileStatement) evaluate(env *environment) interface{} {
-	for isTruthy(stmt.cond.evaluate(env)) {
+func (stmt whileStatement) evaluate(env *environment) (interface{}, error) {
+	for {
+		val, err := stmt.cond.evaluate(env)
+		if err != nil {
+			return nil, err
+		}
+		if !isTruthy(val) {
+			break
+		}
 		stmt.body.evaluate(env)
 	}
-	return nil
+	return nil, nil
 }
 
 func (stmt whileStatement) print() string {
@@ -109,26 +126,29 @@ func (stmt funcStatement) print() string {
 	return "func"
 }
 
-func (stmt funcStatement) evaluate(env *environment) interface{} {
+func (stmt funcStatement) evaluate(env *environment) (interface{}, error) {
 	f := function{
 		declaration: stmt,
 	}
 	env.set(stmt.name.Lexeme, f)
-	return nil
+	return nil, nil
 }
 
 type returnStatement struct {
 	value expression
 }
 
-func (stmt returnStatement) evaluate(env *environment) interface{} {
-	value := stmt.value.evaluate(env)
+func (stmt returnStatement) evaluate(env *environment) (interface{}, error) {
+	value, err := stmt.value.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	if value != nil {
 		//Back to the top of the stack on the call statement
 		//To ensure this, we panic to make like handled exception
 		panic(value)
 	}
-	return nil
+	return nil, nil
 }
 
 func (stmt returnStatement) print() string {

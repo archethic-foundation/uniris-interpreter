@@ -1,4 +1,4 @@
-package main
+package uniris
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 type expression interface {
-	evaluate(*environment) interface{}
+	evaluate(*environment) (interface{}, error)
 	print() string
 }
 
@@ -16,10 +16,13 @@ type assignExpression struct {
 	exp expression
 }
 
-func (e assignExpression) evaluate(env *environment) interface{} {
-	value := e.exp.evaluate(env)
+func (e assignExpression) evaluate(env *environment) (interface{}, error) {
+	value, err := e.exp.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	env.set(e.op.Lexeme, value)
-	return value
+	return value, nil
 }
 
 func (e assignExpression) print() string {
@@ -31,7 +34,7 @@ type variableExpression struct {
 	op token
 }
 
-func (e variableExpression) evaluate(env *environment) interface{} {
+func (e variableExpression) evaluate(env *environment) (interface{}, error) {
 	return env.get(e.op.Lexeme)
 }
 
@@ -46,37 +49,43 @@ type binaryExpression struct {
 	op    token
 }
 
-func (e binaryExpression) evaluate(env *environment) interface{} {
-	left := e.left.evaluate(env)
-	right := e.right.evaluate(env)
+func (e binaryExpression) evaluate(env *environment) (interface{}, error) {
+	left, err := e.left.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
+	right, err := e.right.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 
 	switch e.op.Type {
 	case TokenMinus:
-		return left.(float64) - right.(float64)
+		return left.(float64) - right.(float64), nil
 	case TokenSlash:
-		return left.(float64) / right.(float64)
+		return left.(float64) / right.(float64), nil
 	case TokenStar:
-		return left.(float64) * right.(float64)
+		return left.(float64) * right.(float64), nil
 	case TokenPlus:
 		if reflect.TypeOf(left).String() == "float64" && reflect.TypeOf(right).String() == "float64" {
-			return left.(float64) + right.(float64)
+			return left.(float64) + right.(float64), nil
 		}
-		return fmt.Sprintf("%v%v", left, right)
+		return fmt.Sprintf("%v%v", left, right), nil
 	case TokenGreater:
-		return left.(float64) > right.(float64)
+		return left.(float64) > right.(float64), nil
 	case TokenGreaterEqual:
-		return left.(float64) >= right.(float64)
+		return left.(float64) >= right.(float64), nil
 	case TokenLess:
-		return left.(float64) < right.(float64)
+		return left.(float64) < right.(float64), nil
 	case TokenLessEqual:
-		return left.(float64) <= right.(float64)
+		return left.(float64) <= right.(float64), nil
 	case TokenEqualEqual:
-		return left == right
+		return left == right, nil
 	case TokenBangEqual:
-		return left != right
+		return left != right, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (e binaryExpression) print() string {
@@ -88,7 +97,7 @@ type groupingExpression struct {
 	exp expression
 }
 
-func (e groupingExpression) evaluate(env *environment) interface{} {
+func (e groupingExpression) evaluate(env *environment) (interface{}, error) {
 	return e.exp.evaluate(env)
 }
 
@@ -102,16 +111,19 @@ type unaryExpression struct {
 	right expression
 }
 
-func (e unaryExpression) evaluate(env *environment) interface{} {
-	right := e.right.evaluate(env)
+func (e unaryExpression) evaluate(env *environment) (interface{}, error) {
+	right, err := e.right.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	switch e.op.Type {
 	case TokenBang:
-		return !isTruthy(right)
+		return !isTruthy(right), nil
 	case TokenMinus:
-		return -right.(float64)
+		return -right.(float64), nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (e unaryExpression) print() string {
@@ -123,8 +135,8 @@ type literalExpression struct {
 	value interface{}
 }
 
-func (e literalExpression) evaluate(env *environment) interface{} {
-	return e.value
+func (e literalExpression) evaluate(env *environment) (interface{}, error) {
+	return e.value, nil
 }
 
 func (e literalExpression) print() string {
@@ -138,15 +150,18 @@ type logicalExpression struct {
 	right expression
 }
 
-func (e logicalExpression) evaluate(env *environment) interface{} {
-	left := e.left.evaluate(env)
+func (e logicalExpression) evaluate(env *environment) (interface{}, error) {
+	left, err := e.left.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	if e.op.Type == TokenOr {
 		if isTruthy(left) {
-			return left
+			return left, nil
 		}
 	} else {
 		if !isTruthy(left) {
-			return left
+			return left, nil
 		}
 	}
 	return e.right.evaluate(env)
@@ -162,13 +177,20 @@ type callExpression struct {
 	args   []expression
 }
 
-func (e callExpression) evaluate(env *environment) interface{} {
-	callee := e.callee.evaluate(env)
+func (e callExpression) evaluate(env *environment) (interface{}, error) {
+	callee, err := e.callee.evaluate(env)
+	if err != nil {
+		return nil, err
+	}
 	switch callee.(type) {
 	case callable:
 		args := make([]interface{}, 0)
 		for _, arg := range e.args {
-			args = append(args, arg.evaluate(env))
+			val, err := arg.evaluate(env)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, val)
 		}
 		f := callee.(callable)
 		return f.call(env, args...)
