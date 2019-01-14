@@ -1,6 +1,8 @@
 package uniris
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type statement interface {
 	evaluate(env *environment) (interface{}, error)

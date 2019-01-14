@@ -9,6 +9,10 @@ type environment struct {
 	values    map[string]interface{}
 }
 
+func NewEnvironment() *environment {
+	return &environment{}
+}
+
 func (env *environment) set(name string, value interface{}) {
 	if env.values == nil {
 		env.values = make(map[string]interface{})

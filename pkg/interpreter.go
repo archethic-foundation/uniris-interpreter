@@ -1,15 +1,15 @@
 package uniris
 
-import "fmt"
-
 //Interpret smart contract code
-func Interpret(code string) error {
+func Interpret(code string, env *environment) error {
 
 	globals := &environment{}
 	globals.set("now", currentTimestampFunc{})
 
-	env := &environment{
-		enclosing: globals,
+	if env == nil {
+		env = &environment{
+			enclosing: globals,
+		}
 	}
 
 	sc := newScanner(code)
@@ -22,12 +22,9 @@ func Interpret(code string) error {
 		return err
 	}
 	for _, s := range stmt {
-		val, err := s.evaluate(env)
+		_, err := s.evaluate(env)
 		if err != nil {
 			return err
-		}
-		if val != nil {
-			fmt.Println(val)
 		}
 	}
 
