@@ -1,0 +1,24 @@
+firstName = "Samuel"
+lastName = "Manzanera"
+birthDate = "03/06/1991"
+nationaly = "french"
+isApostilled = false
+refugeeID = ""
+apostilleDate = ""
+agentPublicKey = "456"
+
+function getState() {
+    return "isApostilled:" + isApostilled +",apostilleDate:" + apostilleDate + ",refugeeID:" + refugeeID
+}
+
+function setApostille(_refugeeID) {
+    if isApostilled == false and messagePublicKey == agentPublicKey {
+        isApostilled = true
+        refugeeID = _refugeeID
+        apostilleDate = now()
+    }
+}
+
+setApostille("123")
+
+print getState()

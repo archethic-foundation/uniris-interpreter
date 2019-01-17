@@ -1,7 +1,7 @@
 package uniris
 
 import (
-	"log"
+	"fmt"
 	"strconv"
 )
 
@@ -153,6 +153,7 @@ func (sc *scanner) scanToken() {
 			for sc.peek() != '\n' && !sc.isAtEnd() {
 				sc.advance()
 			}
+			break
 		}
 		sc.addEmptyToken(TokenSlash)
 		break
@@ -194,7 +195,7 @@ func (sc *scanner) scanToken() {
 		} else if sc.isAlpha(c) {
 			sc.identifier()
 		} else {
-			log.Printf("Error: Line: %d, Unexpected character: %s", sc.line, string(c))
+			panic(fmt.Errorf("Error: Line: %d, Unexpected character: %s", sc.line, string(c)))
 		}
 		break
 	}
@@ -305,8 +306,7 @@ func (sc *scanner) string() {
 
 	// Unterminated string.
 	if sc.isAtEnd() {
-		log.Printf("ERROR: Line: %d, Unterminated string.", sc.line)
-		return
+		panic(fmt.Sprintf("ERROR: Line: %d, Unterminated string.", sc.line))
 	}
 
 	// The closing ".

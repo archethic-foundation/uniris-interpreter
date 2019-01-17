@@ -5,27 +5,22 @@ import (
 )
 
 type statement interface {
-	evaluate(env *environment) (interface{}, error)
-	print() string
+	evaluate(env *Environment) (interface{}, error)
 }
 
 type expressionStmt struct {
 	exp expression
 }
 
-func (stmt expressionStmt) evaluate(env *environment) (interface{}, error) {
+func (stmt expressionStmt) evaluate(env *Environment) (interface{}, error) {
 	return stmt.exp.evaluate(env)
-}
-
-func (stmt expressionStmt) print() string {
-	return "expression"
 }
 
 type printStmt struct {
 	exp expression
 }
 
-func (stmt printStmt) evaluate(env *environment) (interface{}, error) {
+func (stmt printStmt) evaluate(env *Environment) (interface{}, error) {
 	value, err := stmt.exp.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -34,16 +29,12 @@ func (stmt printStmt) evaluate(env *environment) (interface{}, error) {
 	return nil, nil
 }
 
-func (stmt printStmt) print() string {
-	return "print"
-}
-
 type blockStmt struct {
 	statements []statement
 }
 
-func (stmt blockStmt) evaluate(env *environment) (interface{}, error) {
-	newenvironment := &environment{enclosing: env}
+func (stmt blockStmt) evaluate(env *Environment) (interface{}, error) {
+	newenvironment := NewEnvironment(env)
 
 	for _, st := range stmt.statements {
 		switch st.(type) {
@@ -63,17 +54,13 @@ func (stmt blockStmt) evaluate(env *environment) (interface{}, error) {
 	return nil, nil
 }
 
-func (stmt blockStmt) print() string {
-	return "block"
-}
-
 type ifStatement struct {
 	cond     expression
 	thenStmt statement
 	elseStmt statement
 }
 
-func (stmt ifStatement) evaluate(env *environment) (interface{}, error) {
+func (stmt ifStatement) evaluate(env *Environment) (interface{}, error) {
 	cond, err := stmt.cond.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -91,16 +78,12 @@ func (stmt ifStatement) evaluate(env *environment) (interface{}, error) {
 	return nil, nil
 }
 
-func (stmt ifStatement) print() string {
-	return "if"
-}
-
 type whileStatement struct {
 	cond expression
 	body statement
 }
 
-func (stmt whileStatement) evaluate(env *environment) (interface{}, error) {
+func (stmt whileStatement) evaluate(env *Environment) (interface{}, error) {
 	for {
 		val, err := stmt.cond.evaluate(env)
 		if err != nil {
@@ -114,25 +97,17 @@ func (stmt whileStatement) evaluate(env *environment) (interface{}, error) {
 	return nil, nil
 }
 
-func (stmt whileStatement) print() string {
-	return "while"
-}
-
 type funcStatement struct {
 	name   token
 	params []token
 	body   blockStmt
 }
 
-func (stmt funcStatement) print() string {
-	return "func"
-}
-
-func (stmt funcStatement) evaluate(env *environment) (interface{}, error) {
+func (stmt funcStatement) evaluate(env *Environment) (interface{}, error) {
 	f := function{
 		declaration: stmt,
 	}
-	env.set(stmt.name.Lexeme, f)
+	env.Set(stmt.name.Lexeme, f)
 	return nil, nil
 }
 
@@ -140,7 +115,7 @@ type returnStatement struct {
 	value expression
 }
 
-func (stmt returnStatement) evaluate(env *environment) (interface{}, error) {
+func (stmt returnStatement) evaluate(env *Environment) (interface{}, error) {
 	value, err := stmt.value.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -151,10 +126,6 @@ func (stmt returnStatement) evaluate(env *environment) (interface{}, error) {
 		panic(value)
 	}
 	return nil, nil
-}
-
-func (stmt returnStatement) print() string {
-	return "return"
 }
 
 func isTruthy(val interface{}) bool {

@@ -37,18 +37,22 @@ func main() {
 			if err != nil {
 				return err
 			}
-			if err := uniris.Interpret(string(code), nil); err != nil {
+			res, err := uniris.Interpret(string(code), nil)
+			if err != nil {
 				fmt.Printf("Error: %s\n", err)
 			}
+			fmt.Print(res)
 			return nil
 		} else if c.Bool("console") {
 			fmt.Println("Type Ctrl-C to exit the console")
-			env := uniris.NewEnvironment()
+			env := uniris.NewEnvironment(nil)
 			for {
 				text := read()
-				if err := uniris.Interpret(text, env); err != nil {
+				res, err := uniris.Interpret(text, env)
+				if err != nil {
 					fmt.Printf("Error: %s\n", err)
 				}
+				fmt.Print(res)
 			}
 		}
 

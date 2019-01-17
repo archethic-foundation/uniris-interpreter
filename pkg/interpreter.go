@@ -1,16 +1,17 @@
 package uniris
 
-//Interpret smart contract code
-func Interpret(code string, env *environment) error {
+import "fmt"
 
-	globals := &environment{}
-	globals.set("now", currentTimestampFunc{})
+//Interpret smart contract code
+func Interpret(code string, env *Environment) (string, error) {
+
+	globals := NewEnvironment(nil)
+	globals.Set("now", currentTimestampFunc{})
 
 	if env == nil {
-		env = &environment{
-			enclosing: globals,
-		}
+		env = NewEnvironment(nil)
 	}
+	env.enclosing = globals
 
 	sc := newScanner(code)
 	tokens := sc.scanTokens()
@@ -19,14 +20,20 @@ func Interpret(code string, env *environment) error {
 	}
 	stmt, err := p.parse()
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	res := ""
+
 	for _, s := range stmt {
-		_, err := s.evaluate(env)
+		val, err := s.evaluate(env)
 		if err != nil {
-			return err
+			return "", err
+		}
+		if val != nil {
+			res += fmt.Sprintf("%v\n", val)
 		}
 	}
 
-	return nil
+	return res, nil
 }

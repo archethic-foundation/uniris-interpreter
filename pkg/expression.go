@@ -1,13 +1,13 @@
 package uniris
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
 
 type expression interface {
-	evaluate(*environment) (interface{}, error)
-	print() string
+	evaluate(*Environment) (interface{}, error)
 }
 
 //Variable assignation
@@ -16,17 +16,14 @@ type assignExpression struct {
 	exp expression
 }
 
-func (e assignExpression) evaluate(env *environment) (interface{}, error) {
+func (e assignExpression) evaluate(env *Environment) (interface{}, error) {
 	value, err := e.exp.evaluate(env)
 	if err != nil {
 		return nil, err
 	}
-	env.set(e.op.Lexeme, value)
-	return value, nil
-}
 
-func (e assignExpression) print() string {
-	return "assign variable"
+	env.Set(e.op.Lexeme, value)
+	return nil, nil
 }
 
 //Variable execution
@@ -34,12 +31,8 @@ type variableExpression struct {
 	op token
 }
 
-func (e variableExpression) evaluate(env *environment) (interface{}, error) {
-	return env.get(e.op.Lexeme)
-}
-
-func (e variableExpression) print() string {
-	return "execute variable"
+func (e variableExpression) evaluate(env *Environment) (interface{}, error) {
+	return env.Get(e.op.Lexeme)
 }
 
 //Arithmetic (+ - * /) and logic (== !=  > < >= <=)
@@ -49,7 +42,7 @@ type binaryExpression struct {
 	op    token
 }
 
-func (e binaryExpression) evaluate(env *environment) (interface{}, error) {
+func (e binaryExpression) evaluate(env *Environment) (interface{}, error) {
 	left, err := e.left.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -83,13 +76,9 @@ func (e binaryExpression) evaluate(env *environment) (interface{}, error) {
 		return left == right, nil
 	case TokenBangEqual:
 		return left != right, nil
+	default:
+		return nil, errors.New("Not supported as binary expression")
 	}
-
-	return nil, nil
-}
-
-func (e binaryExpression) print() string {
-	return "binary expression"
 }
 
 //Parenthesis and brackets
@@ -97,12 +86,8 @@ type groupingExpression struct {
 	exp expression
 }
 
-func (e groupingExpression) evaluate(env *environment) (interface{}, error) {
+func (e groupingExpression) evaluate(env *Environment) (interface{}, error) {
 	return e.exp.evaluate(env)
-}
-
-func (e groupingExpression) print() string {
-	return "group expression"
 }
 
 //Not expression or negative one
@@ -111,7 +96,7 @@ type unaryExpression struct {
 	right expression
 }
 
-func (e unaryExpression) evaluate(env *environment) (interface{}, error) {
+func (e unaryExpression) evaluate(env *Environment) (interface{}, error) {
 	right, err := e.right.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -126,21 +111,13 @@ func (e unaryExpression) evaluate(env *environment) (interface{}, error) {
 	return nil, nil
 }
 
-func (e unaryExpression) print() string {
-	return "unary expression"
-}
-
 //Number, string, booleans
 type literalExpression struct {
 	value interface{}
 }
 
-func (e literalExpression) evaluate(env *environment) (interface{}, error) {
+func (e literalExpression) evaluate(env *Environment) (interface{}, error) {
 	return e.value, nil
-}
-
-func (e literalExpression) print() string {
-	return "literal expression"
 }
 
 //And, OR
@@ -150,7 +127,7 @@ type logicalExpression struct {
 	right expression
 }
 
-func (e logicalExpression) evaluate(env *environment) (interface{}, error) {
+func (e logicalExpression) evaluate(env *Environment) (interface{}, error) {
 	left, err := e.left.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -167,17 +144,13 @@ func (e logicalExpression) evaluate(env *environment) (interface{}, error) {
 	return e.right.evaluate(env)
 }
 
-func (e logicalExpression) print() string {
-	return "logical expression"
-}
-
 type callExpression struct {
 	callee expression
 	paren  token
 	args   []expression
 }
 
-func (e callExpression) evaluate(env *environment) (interface{}, error) {
+func (e callExpression) evaluate(env *Environment) (interface{}, error) {
 	callee, err := e.callee.evaluate(env)
 	if err != nil {
 		return nil, err
@@ -195,10 +168,6 @@ func (e callExpression) evaluate(env *environment) (interface{}, error) {
 		f := callee.(callable)
 		return f.call(env, args...)
 	default:
-		panic("Can only call functions")
+		return nil, errors.New("Can only call functions")
 	}
-}
-
-func (e callExpression) print() string {
-	return "call expression"
 }

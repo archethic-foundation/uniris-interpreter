@@ -5,17 +5,17 @@ import (
 )
 
 type callable interface {
-	call(*environment, ...interface{}) (interface{}, error)
+	call(*Environment, ...interface{}) (interface{}, error)
 }
 
 type function struct {
 	declaration funcStatement
 }
 
-func (f function) call(env *environment, args ...interface{}) (res interface{}, err error) {
-	newenvironment := &environment{enclosing: env}
+func (f function) call(env *Environment, args ...interface{}) (res interface{}, err error) {
+	newEnvironment := NewEnvironment(env)
 	for i := 0; i < len(f.declaration.params); i++ {
-		newenvironment.set(f.declaration.params[i].Lexeme, args[i])
+		newEnvironment.Set(f.declaration.params[i].Lexeme, args[i])
 	}
 
 	defer func() {
@@ -23,7 +23,7 @@ func (f function) call(env *environment, args ...interface{}) (res interface{}, 
 			res = x
 		}
 	}()
-	res, err = f.declaration.body.evaluate(newenvironment)
+	res, err = f.declaration.body.evaluate(newEnvironment)
 	if err != nil {
 		return nil, err
 	}
@@ -33,6 +33,6 @@ func (f function) call(env *environment, args ...interface{}) (res interface{}, 
 //GLOBAL FUNCTIONS (BUILT-IN)
 type currentTimestampFunc struct{}
 
-func (f currentTimestampFunc) call(env *environment, args ...interface{}) (interface{}, error) {
+func (f currentTimestampFunc) call(env *Environment, args ...interface{}) (interface{}, error) {
 	return time.Now().Unix(), nil
 }
