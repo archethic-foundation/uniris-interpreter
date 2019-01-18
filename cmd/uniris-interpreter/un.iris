@@ -12,7 +12,7 @@ function getState() {
 }
 
 function setApostille(_refugeeID) {
-    if isApostilled == false and messagePublicKey == agentPublicKey {
+    if isApostilled == false {
         isApostilled = true
         refugeeID = _refugeeID
         apostilleDate = now()
@@ -20,5 +20,6 @@ function setApostille(_refugeeID) {
 }
 
 setApostille("123")
+setApostille("456")
 
 print getState()
